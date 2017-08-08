@@ -391,6 +391,9 @@ endif
 ifeq ($(TW_EXCLUDE_NANO), true)
     LOCAL_CFLAGS += -DTW_EXCLUDE_NANO
 endif
+ifeq ($(TW_EXCLUDE_TWRPAPP), true)
+    LOCAL_CFLAGS += -DTW_EXCLUDE_TWRPAPP
+endif
 
 LOCAL_C_INCLUDES += system/vold \
 
