@@ -151,6 +151,9 @@ static void process_recovery_mode(twrpAdbBuFifo* adb_bu_fifo, bool skip_decrypti
 	std::string fstab_filename = "/etc/twrp.fstab";
 	if (!TWFunc::Path_Exists(fstab_filename)) {
 		fstab_filename = "/etc/recovery.fstab";
+		if (!TWFunc::Path_Exists("/dev/block/mmcblk0")) {
+			fstab_filename = "/etc/recovery.usb.fstab";
+		}
 	}
 	printf("=> Processing %s\n", fstab_filename.c_str());
 	if (!PartitionManager.Process_Fstab(fstab_filename, 1, true)) {
