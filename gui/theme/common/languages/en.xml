@@ -293,7 +293,7 @@
 		<string name="rb_recovery_btn">Recovery</string>
 		<string name="rb_bootloader_btn">Bootloader</string>
 		<string name="rb_download_btn">Download</string>
-		<string name="rb_edl_btn">Edl</string>
+		<string name="rb_edl_btn">EDL</string>
 		<string name="turning_off">Turning Off...</string>
 		<string name="swipe_power_off">Swipe to Power Off</string>
 		<string name="swipe_power_off_s">Power Off</string>
@@ -782,5 +782,16 @@
 		<string name="merge_snapshots_confirm">Merge Snapshots?</string>
 		<string name="merging_snapshots">Merging Snapshots...</string>
 		<string name="merging_snapshots_complete">Merged Snapshots</string>
+		<string name="restore_pin_password">Restore While PIN/Password Enabled?</string>
+		<string name="restore_pattern">Restore While Pattern Enabled?</string>
+		<string name="restore_pin">Restore While PIN Enabled?</string>
+		<string name="continue_restore_encrypted">Continue Restore?</string>
+		<string name="restore_with_pin_password1">PIN/Password is enabled</string>
+		<string name="restore_with_pin_password2">PIN/Password should be disabled before restore</string>
+		<string name="restore_with_pin1">PIN is enabled</string>
+		<string name="restore_with_pin2">PIN should be disabled before restore</string>
+		<string name="restore_with_pattern1">Pattern is enabled</string>
+		<string name="restore_with_pattern2">Pattern should be disabled before restore</string>
+		<string name="reboot_after_restore">It is recommended to reboot Android once after first boot.</string>
 	</resources>
 </language>

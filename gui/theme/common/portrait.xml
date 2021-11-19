@@ -2359,6 +2359,78 @@
 			</button>
 
 			<action>
+				<condition var1="tw_crypto_pwtype" op="!=" var2="0"/>
+				<actions>
+					<action function="page">restore_keymaster</action>
+				</actions>
+			</action>
+
+			<action>
+				<condition var1="tw_restore" op="modified"/>
+				<actions>
+					<action function="readBackup"/>
+					<action function="page">restore_read</action>
+				</actions>
+			</action>
+
+			<action>
+				<touch key="home"/>
+				<action function="page">main</action>
+			</action>
+
+			<action>
+				<touch key="back"/>
+				<action function="page">main</action>
+			</action>
+		</page>
+
+
+		<page name="restore_force">
+			<template name="page"/>
+
+			<action>
+				<conditions>
+					<condition var1="tw_is_fbe" var2="1"/>
+					<condition var1="tw_all_users_decrypted" var2="0"/>
+					<condition var1="tw_multiuser_warning_accepted" op="!=" var2="1"/>
+				</conditions>
+				<actions>
+					<action function="set">tw_multiuser_warning_destination=restore</action>
+					<action function="page">multiuser_warning</action>
+				</actions>
+			</action>
+
+			<text style="text_l">
+				<placement x="%col1_x_header%" y="%row3_header_y%"/>
+				<text>{@restore_hdr=Restore}</text>
+			</text>
+
+			<text style="text_m">
+				<placement x="%col1_x_header%" y="%row4_header_y%"/>
+				<text>{@restore_sel_store_hdr=Select Backup from %tw_storage_display_name% (%tw_storage_free_size% MB)}</text>
+			</text>
+
+			<template name="sort_options"/>
+
+			<fileselector>
+				<placement x="%indent%" y="%row3_y%" w="%content_width%" h="%fileselector_install_height%"/>
+				<text>{@restore_sel_pack_fs=Select Package to Restore:}</text>
+				<filter folders="1" files="1" nav="0" extn=".ab"/>
+				<path name="tw_backups_folder"/>
+				<data name="tw_restore" default=""/>
+				<selection name="tw_restore_name"/>
+			</fileselector>
+
+			<button style="main_button_half_height">
+				<placement x="%indent%" y="%row21a_y%"/>
+				<text>{@select_storage_btn=Select Storage}</text>
+				<actions>
+					<action function="set">tw_back=restore</action>
+					<action function="overlay">select_storage</action>
+				</actions>
+			</button>
+
+			<action>
 				<condition var1="tw_restore" op="modified"/>
 				<actions>
 					<action function="readBackup"/>
@@ -2996,7 +3068,7 @@
 					</actions>
 				</listitem>
 
-				<listitem name="{@rb_edl_btn=Edl}">
+				<listitem name="{@rb_edl_btn=EDL}">
 					<condition var1="tw_edl_mode" var2="1"/>
 					<actions>
 						<action function="set">tw_back=fastbootreboot</action>
@@ -3024,13 +3096,6 @@
 		</page>
 
 		<page name="reboot">
-			<action>
-				<action function="checkforapp"></action>
-				<action function="page">reboot2</action>
-			</action>
-		</page>
-
-		<page name="reboot2">
 			<template name="page"/>
 
 			<text style="text_l">
@@ -3134,7 +3199,7 @@
 					</actions>
 				</listitem>
 
-				<listitem name="{@rb_edl_btn=Edl}">
+				<listitem name="{@rb_edl_btn=EDL}">
 					<condition var1="tw_edl_mode" var2="1"/>
 					<actions>
 						<action function="set">tw_back=reboot</action>
@@ -3154,11 +3219,11 @@
 
 			<text style="text_m">
 				<condition var1="tw_has_boot_slots" var2="1"/>
-				<placement x="%center_x%" y="%row15_y%" placement="5"/>
+				<placement x="%center_x%" y="%row17_y%" placement="5"/>
 				<text>{@current_boot_slot=Current Slot: %tw_active_slot%}</text>
 			</text>
 
-			<button style="main_button_half_height">
+			<button style="main_button">
 				<condition var1="tw_has_boot_slots" var2="1"/>
 				<placement x="%indent%" y="%row19_y%"/>
 				<text>{@boot_slot_a=Slot A}</text>
@@ -3174,7 +3239,7 @@
 				</actions>
 			</button>
 
-			<button style="main_button_half_height">
+			<button style="main_button">
 				<condition var1="tw_has_boot_slots" var2="1"/>
 				<placement x="%center_x%" y="%row19_y%"/>
 				<text>{@boot_slot_b=Slot B}</text>
@@ -3187,18 +3252,6 @@
 					<action function="set">tw_action_text2=</action>
 					<action function="set">tw_complete_text1={@changing_boot_slot_complete=Change Boot Slot Complete}</action>
 					<action function="page">action_page</action>
-				</actions>
-			</button>
-
-			<button style="main_button_half_height">
-				<condition var1="tw_app_prompt" op="!=" var2="-1"/>
-				<condition var1="tw_app_install_status" var2="1"/>
-				<placement x="%indent%" y="%row22_y%"/>
-				<text>{@reboot_install_app_hdr=Install TWRP App}</text>
-				<actions>
-					<action function="set">tw_back=reboot</action>
-					<action function="set">tw_appinstall_title={@reboot_hdr=Reboot}</action>
-					<action function="page">installapp</action>
 				</actions>
 			</button>
 
@@ -4896,6 +4949,11 @@
 				<action function="page">decrypt_pattern</action>
 			</action>
 
+			<action>
+				<condition var1="tw_crypto_pwtype" var2="3"/>
+				<action function="page">decrypt_pin</action>
+			</action>
+
 			<text style="text_l">
 				<placement x="%col1_x_header%" y="%row3_header_y%"/>
 				<text>{@mount_hdr=Mount}</text>
@@ -5030,6 +5088,69 @@
 				<text>{@sel_lang_btn=Select Language}</text>
 				<action function="overlay">select_language</action>
 			</button>
+		</page>
+
+		<page name="decrypt_pin">
+			<template name="page"/>
+
+			<text style="text_l">
+				<placement x="%col1_x_header%" y="%row3_header_y%"/>
+				<text>{@mount_hdr=Mount}</text>
+			</text>
+
+			<text style="text_m">
+				<placement x="%col1_x_header%" y="%row4_header_y%"/>
+				<text>{@decrypt_data_hdr=Decrypt Data}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_is_fbe" op="!=" var2="1"/>
+				<placement x="%center_x%" y="%row2_y%" placement="5"/>
+				<text>{@decrypt_data_enter_pass=Enter PIN:}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_is_fbe" var2="1"/>
+				<placement x="%center_x%" y="%row2_y%" placement="5"/>
+				<text>{@decrypt_data_enter_pass_fbe=Enter PIN for User [%tw_crypto_user_id%]}</text>
+			</text>
+
+			<input>
+				<placement x="%indent%" y="%row3_input_y%" w="%content_width%" h="%input_height%"/>
+				<text>%tw_crypto_display%</text>
+				<data name="tw_crypto_password" mask="*" maskvariable="tw_crypto_display"/>
+				<restrict minlen="1" maxlen="254"/>
+				<action function="page">trydecrypt</action>
+			</input>
+
+			<fill color="%accent_color%">
+				<placement x="%indent%" y="row4a_y" w="%content_width%" h="input_line_width" placement="1"/>
+			</fill>
+
+			<fill color="%text_fail_color%">
+				<condition var1="tw_password_fail" var2="1"/>
+				<placement x="%indent%" y="row4a_y" w="%content_width%" h="input_line_width" placement="1"/>
+			</fill>
+
+			<text style="text_m_fail">
+				<condition var1="tw_password_fail" var2="1"/>
+				<placement x="%indent%" y="%row5_y%"/>
+				<text>{@decrypt_data_failed=PIN failed, please try again!}</text>
+			</text>
+
+			<button style="main_button_half_height">
+				<placement x="%indent%" y="%row10_y%"/>
+				<text>{@cancel_btn=Cancel}</text>
+				<action function="page">canceldecrypt</action>
+			</button>
+
+			<button style="main_button_half_height">
+				<placement x="%center_x%" y="%row10_y%"/>
+				<text>{@sel_lang_btn=Select Language}</text>
+				<action function="overlay">select_language</action>
+			</button>
+
+			<template name="keyboardnum"/>
 		</page>
 
 		<page name="trydecrypt">
@@ -5709,6 +5830,82 @@
 				<touch key="back"/>
 				<actions>
 					<action function="page">advanced</action>
+				</actions>
+			</action>
+		</page>
+
+		<page name="restore_keymaster">
+			<template name="page"/>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="1"/>
+				<placement x="%center_x%" y="%row2_y%" placement="5"/>
+				<text>{@restore_with_pin_password1=PIN/Password is enabled}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="1"/>
+				<placement x="%center_x%" y="%row3_y%" placement="5"/>
+				<text>{@restore_with_pin_password2=PIN/Password should be disabled before restore}</text>
+			</text>
+			<text style="text_l">
+				<condition var1="tw_crypto_pwtype" var2="1"/>
+				<placement x="%col1_x_header%" y="%row3_header_y%"/>
+				<text>{@restore_pin_password=Restore While PIN/Password Enabled?}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="2"/>
+				<placement x="%center_x%" y="%row2_y%" placement="5"/>
+				<text>{@restore_with_pattern1=Pattern is enabled}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="2"/>
+				<placement x="%center_x%" y="%row3_y%" placement="5"/>
+				<text>{@restore_with_pattern2=Pattern should be disabled before restore}</text>
+			</text>
+
+			<text style="text_l">
+				<condition var1="tw_crypto_pwtype" var2="2"/>
+				<placement x="%col1_x_header%" y="%row3_header_y%"/>
+				<text>{@restore_pattern=Restore While Pattern Enabled?}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="3"/>
+				<placement x="%center_x%" y="%row2_y%" placement="5"/>
+				<text>{@restore_with_pin1=PIN is enabled}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="3"/>
+				<placement x="%center_x%" y="%row3_y%" placement="5"/>
+				<text>{@restore_with_pin2=PIN should be disabled before restore}</text>
+			</text>
+
+			<text style="text_l">
+				<condition var1="tw_crypto_pwtype" var2="3"/>
+				<placement x="%col1_x_header%" y="%row3_header_y%"/>
+				<text>{@restore_pin=Restore While PIN Enabled?}</text>
+			</text>
+
+			<slider>
+				<text>{@continue_restore_encrypted=Continue Restore?}</text>
+				<actions>
+					<action function="page">restore_force</action>
+				</actions>
+			</slider>
+
+			<action>
+				<touch key="home"/>
+				<action function="page">main</action>
+			</action>
+
+			<action>
+				<touch key="back"/>
+				<actions>
+					<action function="page">main</action>
 				</actions>
 			</action>
 		</page>
