@@ -2712,7 +2712,7 @@
 			<action>
 				<condition var1="tw_crypto_pwtype" op="!=" var2="0"/>
 				<actions>
-					<action function="page">restore_pin</action>
+					<action function="page">restore_keymaster</action>
 				</actions>
 			</action>
 
@@ -2746,7 +2746,7 @@
 					<condition var1="tw_multiuser_warning_accepted" op="!=" var2="1"/>
 				</conditions>
 				<actions>
-					<action function="set">tw_multiuser_warning_destination=restore</action>
+					<action function="set">tw_multiuser_warning_destination=restore_force</action>
 					<action function="page">multiuser_warning</action>
 				</actions>
 			</action>
@@ -4354,7 +4354,7 @@
 			<listbox style="advanced_listbox">
 				<placement x="%indent%" y="%row2_header_y%" w="%content_width%" h="%fileselector_install_height%"/>
 				<listitem name="{@change_twrp_folder_btn=Change TWRP folder}">
-					<condition var1="tw_is_encrypted" var2="0"/>
+					<condition var1="tw_is_decrypted" var2="1"/>
 					<action function="page">changeTwrpFolder</action>
 				</listitem>
 				<listitem name="{@decrypt_users=Decrypt Users}">
@@ -6207,22 +6207,22 @@
 			</action>
 		</page>
 
-		<page name="restore_pin">
+		<page name="restore_keymaster">
 			<template name="page"/>
 			<text style="text_m_accent">
 				<condition var1="tw_crypto_pwtype" var2="1"/>
 				<placement x="%center_x%" y="%row1_y%" placement="5"/>
-				<text>{@restore_with_pin1=PIN/Password is enabled}</text>
+				<text>{@restore_with_pin_password1=PIN/Password is enabled}</text>
 			</text>
 			<text style="text_m_accent">
 				<condition var1="tw_crypto_pwtype" var2="1"/>
 				<placement x="%center_x%" y="%row2_y%" placement="5"/>
-				<text>{@restore_with_pin2=PIN/Password should be disabled before restore}</text>
+				<text>{@restore_with_pin_password2=PIN/Password should be disabled before restore}</text>
 			</text>
 			<text style="text_l">
 				<condition var1="tw_crypto_pwtype" var2="1"/>
 				<placement x="%center_x%" y="%row3_y%" placement="5"/>
-				<text>{@restore_pin=Restore While PIN/Password Enabled?}</text>
+				<text>{@restore_pin_password=Restore While PIN/Password Enabled?}</text>
 			</text>
 			<text style="text_m_accent">
 				<condition var1="tw_crypto_pwtype" var2="2"/>

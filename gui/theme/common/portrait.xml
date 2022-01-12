@@ -2395,7 +2395,7 @@
 					<condition var1="tw_multiuser_warning_accepted" op="!=" var2="1"/>
 				</conditions>
 				<actions>
-					<action function="set">tw_multiuser_warning_destination=restore</action>
+					<action function="set">tw_multiuser_warning_destination=restore_force</action>
 					<action function="page">multiuser_warning</action>
 				</actions>
 			</action>
@@ -3863,7 +3863,7 @@
 			<listbox style="advanced_listbox">
 				<placement x="%indent%" y="%row13a_y%" w="%content_width%" h="%listbox_advanced_height%"/>
 				<listitem name="{@change_twrp_folder_btn=Change TWRP folder}">
-					<condition var1="tw_is_encrypted" var2="0"/>
+					<condition var1="tw_is_decrypted" var2="1"/>
 					<action function="page">changeTwrpFolder</action>
 				</listitem>
 				<listitem name="{@decrypt_users=Decrypt Users}">

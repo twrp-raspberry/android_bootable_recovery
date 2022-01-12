@@ -2199,7 +2199,7 @@
 			<action>
 				<condition var1="tw_crypto_pwtype" op="!=" var2="0"/>
 				<actions>
-					<action function="page">restore_pin</action>
+					<action function="page">restore_keymaster</action>
 				</actions>
 			</action>
 
@@ -2233,7 +2233,7 @@
 					<condition var1="tw_multiuser_warning_accepted" op="!=" var2="1"/>
 				</conditions>
 				<actions>
-					<action function="set">tw_multiuser_warning_destination=restore</action>
+					<action function="set">tw_multiuser_warning_destination=restore_force</action>
 					<action function="page">multiuser_warning</action>
 				</actions>
 			</action>
@@ -2267,12 +2267,6 @@
 					<action function="overlay">select_storage</action>
 				</actions>
 			</button>
-			<action>
-				<condition var1="tw_crypto_pwtype" op="!=" var2="0"/>
-				<actions>
-					<action function="page">restore_pin</action>
-				</actions>
-			</action>
 
 			<action>
 				<condition var1="tw_restore" op="modified"/>
@@ -3746,7 +3740,7 @@
 			<listbox style="advanced_listbox">
 				<placement x="%center_x%" y="%row2_y%" w="%content_half_width%" h="%fileselector_install_height%"/>
 				<listitem name="{@change_twrp_folder_btn=Change TWRP folder}">
-					<condition var1="tw_is_encrypted" var2="0"/>
+					<condition var1="tw_is_decrypted" var2="1"/>
 					<action function="page">changeTwrpFolder</action>
 				</listitem>
 				<listitem name="{@decrypt_users=Decrypt Users}">
@@ -6109,24 +6103,24 @@ edi				<conditions>
 			</action>
 		</page>
 
-		<page name="restore_pin">
+		<page name="restore_keymaster">
 			<template name="page"/>
 
 			<text style="text_m_accent">
 				<condition var1="tw_crypto_pwtype" var2="1"/>
 				<placement x="%col1_x_header%" y="%row3_header_y%"/>
-				<text>{@restore_with_pin1=PIN/Password is enabled}</text>
+				<text>{@restore_with_pin_password1=PIN/Password is enabled}</text>
 			</text>
 
 			<text style="text_m_accent">
 				<condition var1="tw_crypto_pwtype" var2="1"/>
 				<placement x="%col1_x_header%" y="%row4_header_y%"/>
-				<text>{@restore_with_pin2=PIN/Password should be disabled before restore}</text>
+				<text>{@restore_with_pin_password2=PIN/Password should be disabled before restore}</text>
 			</text>
 			<text style="text_l">
 				<condition var1="tw_crypto_pwtype" var2="1"/>
 				<placement x="%center_x%" y="%row2_y%" placement="5"/>
-				<text>{@restore_pin=Restore While PIN/Password Enabled?}</text>
+				<text>{@restore_pin_password=Restore While PIN/Password Enabled?}</text>
 			</text>
 
 			<text style="text_m_accent">
@@ -6145,6 +6139,23 @@ edi				<conditions>
 				<condition var1="tw_crypto_pwtype" var2="2"/>
 				<placement x="%center_x%" y="%row2_y%" placement="5"/>
 				<text>{@restore_pattern=Restore While Pattern Enabled?}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="3"/>
+				<placement x="%col1_x_header%" y="%row3_header_y%"/>
+				<text>{@restore_with_pin1=PIN is enabled}</text>
+			</text>
+
+			<text style="text_m_accent">
+				<condition var1="tw_crypto_pwtype" var2="3"/>
+				<placement x="%col1_x_header%" y="%row4_header_y%"/>
+				<text>{@restore_with_pin2=PIN should be disabled before restore}</text>
+			</text>
+			<text style="text_l">
+				<condition var1="tw_crypto_pwtype" var2="3"/>
+				<placement x="%center_x%" y="%row2_y%" placement="5"/>
+				<text>{@restore_pin=Restore While PIN Enabled?}</text>
 			</text>
 
 			<slider>
