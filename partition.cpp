@@ -133,12 +133,14 @@ enum TW_FSTAB_FLAGS {
 	TWFLAG_DISPLAY,
 	TWFLAG_ENCRYPTABLE,
 	TWFLAG_FILEENCRYPTION,
+	TWFLAG_METADATA_ENCRYPTION,
 	TWFLAG_FLASHIMG,
 	TWFLAG_FORCEENCRYPT,
 	TWFLAG_FSFLAGS,
 	TWFLAG_IGNOREBLKID,
 	TWFLAG_LENGTH,
 	TWFLAG_MOUNTTODECRYPT,
+	TWFLAG_QUOTA,
 	TWFLAG_REMOVABLE,
 	TWFLAG_SETTINGSSTORAGE,
 	TWFLAG_STORAGE,
@@ -180,12 +182,14 @@ const struct flag_list tw_flags[] = {
 	{ "display=",               TWFLAG_DISPLAY },
 	{ "encryptable=",           TWFLAG_ENCRYPTABLE },
 	{ "fileencryption=",        TWFLAG_FILEENCRYPTION },
+	{ "metadata_encryption=",   TWFLAG_METADATA_ENCRYPTION },
 	{ "flashimg",               TWFLAG_FLASHIMG },
 	{ "forceencrypt=",          TWFLAG_FORCEENCRYPT },
 	{ "fsflags=",               TWFLAG_FSFLAGS },
 	{ "ignoreblkid",            TWFLAG_IGNOREBLKID },
 	{ "length=",                TWFLAG_LENGTH },
 	{ "mounttodecrypt",         TWFLAG_MOUNTTODECRYPT },
+	{ "quota",                  TWFLAG_QUOTA },
 	{ "removable",              TWFLAG_REMOVABLE },
 	{ "settingsstorage",        TWFLAG_SETTINGSSTORAGE },
 	{ "storage",                TWFLAG_STORAGE },
@@ -658,8 +662,6 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 	UnMount(false);
 
 #ifdef TW_INCLUDE_CRYPTO
-	if (datamedia)
-		Setup_Data_Media();
 	Can_Be_Encrypted = true;
 	char crypto_blkdev[255];
 	property_get("ro.crypto.fs_crypto_blkdev", crypto_blkdev, "error");
@@ -667,6 +669,8 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 		Set_FBE_Status();
 		Decrypted_Block_Device = crypto_blkdev;
 		LOGINFO("Data already decrypted, new block device: '%s'\n", crypto_blkdev);
+		if (datamedia)
+			Setup_Data_Media();
 		DataManager::SetValue(TW_IS_ENCRYPTED, 0);
 	} else if (!Mount(false)) {
 		if (Is_Present) {
@@ -683,18 +687,24 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 					DataManager::SetValue("tw_crypto_pwtype_0", cryptfs_get_password_type());
 					DataManager::SetValue(TW_CRYPTO_PASSWORD, "");
 					DataManager::SetValue("tw_crypto_display", "");
+					if (datamedia)
+						Setup_Data_Media();
 				} else {
 					gui_err("mount_data_footer=Could not mount /data and unable to find crypto footer.");
 				}
 			} else {
 				Is_Encrypted = true;
 				Is_Decrypted = false;
+				if (datamedia)
+					Setup_Data_Media();
 			}
 		} else if (Key_Directory.empty()) {
 			LOGERR("Primary block device '%s' for mount point '%s' is not present!\n",
 			Primary_Block_Device.c_str(), Mount_Point.c_str());
 		}
 	} else {
+		if (Is_Mounted())
+			UnMount(true);
 		Set_FBE_Status();
 		int is_device_fbe;
 		DataManager::GetValue(TW_IS_FBE, is_device_fbe);
@@ -705,6 +715,9 @@ void TWPartition::Setup_Data_Partition(bool Display_Error) {
 				LOGERR("Unable to decrypt FBE device\n");
 		} else {
 			DataManager::SetValue(TW_IS_ENCRYPTED, 0);
+			if (datamedia)
+				Setup_Data_Media();
+
 		}
 	}
 	if (datamedia && (!Is_Encrypted || (Is_Encrypted && Is_Decrypted))) {
@@ -929,6 +942,26 @@ void TWPartition::Apply_TW_Flag(const unsigned flag, const char* str, const bool
 				LOGINFO("FBE contents '%s', filenames '%s'\n", FBE_contents.c_str(), FBE_filenames.c_str());
 			}
 			break;
+		case TWFLAG_METADATA_ENCRYPTION:
+			// This flag isn't used by TWRP but is needed for FBEv2 metadata decryption
+			// metadata_encryption=aes-256-xts:wrappedkey_v0
+			{
+				std::string META = str;
+				size_t colon_loc = META.find(":");
+				if (colon_loc == std::string::npos) {
+					property_set("metadata.contents", META.c_str());
+					property_set("metadata.filenames", "");
+					LOGINFO("Metadata contents '%s', filenames ''\n", META.c_str());
+					break;
+				}
+				std::string META_contents, META_filenames;
+				META_contents = META.substr(0, colon_loc);
+				META_filenames = META.substr(colon_loc + 1);
+				property_set("metadata.contents", META_contents.c_str());
+				property_set("metadata.filenames", META_filenames.c_str());
+				LOGINFO("Metadata contents '%s', filenames '%s'\n", META_contents.c_str(), META_filenames.c_str());
+			}
+			break;
 		case TWFLAG_WRAPPEDKEY:
 			// no more processing needed. leaving it here in case we want to do something in the future
 			break;
@@ -946,6 +979,9 @@ void TWPartition::Apply_TW_Flag(const unsigned flag, const char* str, const bool
 			break;
 		case TWFLAG_MOUNTTODECRYPT:
 			Mount_To_Decrypt = val;
+			break;
+		case TWFLAG_QUOTA:
+			// Filesystem flag - TWRP does not need to process
 			break;
 		case TWFLAG_REMOVABLE:
 			Removable = val;
@@ -1194,7 +1230,8 @@ void TWPartition::Setup_Data_Media() {
 			Make_Dir("/sdcard", false);
 			Symlink_Mount_Point = "/sdcard";
 		}
-		if (Mount(false) && TWFunc::Path_Exists(Mount_Point + "/media/0")) {
+		Mount(false);
+		if (TWFunc::Path_Exists(Mount_Point + "/media/0")) {
 			Storage_Path = Mount_Point + "/media/0";
 			Symlink_Path = Storage_Path;
 			DataManager::SetValue(TW_INTERNAL_PATH, Mount_Point + "/media/0");
@@ -1206,6 +1243,7 @@ void TWPartition::Setup_Data_Media() {
 		backup_exclusions.add_absolute_dir("/data/per_boot"); // DJ9,14Jan2020 - exclude this dir to prevent "error 255" on AOSP ROMs that create and lock it
 		backup_exclusions.add_absolute_dir("/data/vendor/dumpsys");
 		backup_exclusions.add_absolute_dir("/data/cache");
+        backup_exclusions.add_absolute_dir("/data/misc/apexdata/com.android.art"); // exclude this dir to prevent "error 255" on AOSP Android 12
 		wipe_exclusions.add_absolute_dir(Mount_Point + "/misc/vold"); // adopted storage keys
 		ExcludeAll(Mount_Point + "/system/storage.xml");
 	} else {
@@ -1604,7 +1642,7 @@ bool TWPartition::Mount(bool Display_Error) {
 	if (Removable)
 		Update_Size(Display_Error);
 
-	if (!Symlink_Mount_Point.empty() && Symlink_Mount_Point != "/sdcard") {
+	if (!Symlink_Mount_Point.empty()) {
 		if (!Bind_Mount(false))
 			return false;
 	}

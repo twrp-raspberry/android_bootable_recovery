@@ -38,8 +38,10 @@
 #include <cctype>
 #include <algorithm>
 #include <selinux/label.h>
+#include <thread>
 
 #include <android-base/strings.h>
+#include <android-base/chrono_utils.h>
 
 #include "twrp-functions.hpp"
 #include "twcommon.h"
@@ -405,6 +407,30 @@ int32_t TWFunc::timespec_diff_ms(timespec& start, timespec& end)
 {
 	return ((end.tv_sec * 1000) + end.tv_nsec/1000000) -
 			((start.tv_sec * 1000) + start.tv_nsec/1000000);
+}
+
+bool TWFunc::Wait_For_File(const string& path, std::chrono::nanoseconds timeout) {
+    android::base::Timer t;
+    while (t.duration() < timeout) {
+        struct stat sb;
+        if (stat(path.c_str(), &sb) != -1) {
+            return true;
+        }
+        std::this_thread::sleep_for(10ms);
+    }
+	return false;
+}
+
+bool TWFunc::Wait_For_Battery(std::chrono::nanoseconds timeout) {
+	std::string battery_path;
+#ifdef TW_CUSTOM_BATTERY_PATH
+	battery_path = EXPAND(TW_CUSTOM_BATTERY_PATH);
+#else
+	battery_path = "/sys/class/power_supply/battery";
+#endif
+	if (!battery_path.empty()) return TWFunc::Wait_For_File(battery_path, timeout);
+
+	return false;
 }
 
 #ifndef BUILD_TWRPTAR_MAIN
@@ -859,16 +885,21 @@ string TWFunc::Get_Current_Date() {
 }
 
 string TWFunc::System_Property_Get(string Prop_Name) {
-	return System_Property_Get(Prop_Name, PartitionManager, PartitionManager.Get_Android_Root_Path(), "build.prop");
+	return Partition_Property_Get(Prop_Name, PartitionManager, PartitionManager.Get_Android_Root_Path(), "build.prop");
 }
 
-string TWFunc::System_Property_Get(string Prop_Name, TWPartitionManager &PartitionManager, string Mount_Point, string prop_file_name) {
+string TWFunc::Partition_Property_Get(string Prop_Name, TWPartitionManager &PartitionManager, string Mount_Point, string prop_file_name) {
 	bool mount_state = PartitionManager.Is_Mounted_By_Path(Mount_Point);
 	std::vector<string> buildprop;
 	string propvalue;
+	string prop_file;
 	if (!PartitionManager.Mount_By_Path(Mount_Point, true))
 		return propvalue;
-	string prop_file = Mount_Point + "/system/" + prop_file_name;
+	if (Mount_Point == PartitionManager.Get_Android_Root_Path()) {
+		prop_file = Mount_Point + "/system/" + prop_file_name;
+	} else {
+		prop_file = Mount_Point + "/" + prop_file_name;
+	}
 	if (!TWFunc::Path_Exists(prop_file)) {
 		LOGINFO("Unable to locate file: %s\n", prop_file.c_str());
 		return propvalue;
@@ -1030,6 +1061,16 @@ void TWFunc::Fixup_Time_On_Boot(const string& time_paths /* = "" */)
 	}
 
 	if (!fixed) {
+#ifdef TW_QCOM_ATS_OFFSET
+		// Offset is the difference between the current time and the time since_epoch
+		// To calculate the offset in Android, the following expression (from a root shell) can be used:
+		// echo "$(( ($(date +%s) - $(cat /sys/class/rtc/rtc0/since_epoch)) ))"
+		// Add 3 zeros to the output and use that in the TW_QCOM_ATS_OFFSET flag in your BoardConfig.mk
+		// For example, if the result of the calculation is 1642433544, use 1642433544000 as the offset
+		offset = (uint64_t) TW_QCOM_ATS_OFFSET;
+		DataManager::SetValue("tw_qcom_ats_offset", (unsigned long long) offset, 1);
+		LOGINFO("TWFunc::Fixup_Time: Setting time offset from TW_QCOM_ATS_OFFSET, offset %llu\n", (unsigned long long) offset);
+#else
 		// Failed to get offset from ats file, check twrp settings
 		unsigned long long value;
 		if (DataManager::GetValue("tw_qcom_ats_offset", value) < 0) {
@@ -1039,6 +1080,7 @@ void TWFunc::Fixup_Time_On_Boot(const string& time_paths /* = "" */)
 			LOGINFO("TWFunc::Fixup_Time: Setting time offset from twrp setting file, offset %llu\n", (unsigned long long) offset);
 			// Do not consider the settings file as a definitive answer, keep fixed=false so next run will try ats files again
 		}
+#endif
 	}
 
 	gettimeofday(&tv, NULL);
