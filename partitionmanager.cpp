@@ -161,9 +161,14 @@ int TWPartitionManager::Set_Crypto_Type(const char* crypto_type) {
 int TWPartitionManager::Process_Fstab(string Fstab_Filename, bool Display_Error, bool recovery_mode) {
 	FILE *fstabFile;
 	char fstab_line[MAX_FSTAB_LINE_LENGTH];
+	char fstab_filename[32];
 	std::map<string, Flags_Map> twrp_flags;
 
-	fstabFile = fopen("/etc/twrp.flags", "rt");
+	strcpy(fstab_filename, "/etc/twrp.flags");
+	if (!TWFunc::Path_Exists("/dev/block/mmcblk0")) {
+		strcpy(fstab_filename, "/etc/twrp.usb.flags");
+	}
+	fstabFile = fopen(fstab_filename, "rt");
 	if (fstabFile != NULL) {
 		LOGINFO("Reading /etc/twrp.flags\n");
 		while (fgets(fstab_line, sizeof(fstab_line), fstabFile) != NULL) {
