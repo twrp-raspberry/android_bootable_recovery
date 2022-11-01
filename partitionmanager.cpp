@@ -308,6 +308,8 @@ void TWPartitionManager::Setup_Fstab_Partitions(bool Display_Error) {
 				Prepare_Super_Volume((*iter));
 		}
 
+		Unlock_Block_Partitions();
+
 		//Setup Apex before decryption
 		TWPartition* sys = PartitionManager.Find_Partition_By_Path(PartitionManager.Get_Android_Root_Path());
 		TWPartition* ven = PartitionManager.Find_Partition_By_Path("/vendor");
@@ -2839,8 +2841,6 @@ bool TWPartitionManager::Flash_Image(string& path, string& filename) {
 
 	full_filename = path + "/" + filename;
 
-	Unlock_Block_Partitions();
-
 	gui_msg("image_flash_start=[IMAGE FLASH STARTED]");
 	gui_msg(Msg("img_to_flash=Image to flash: '{1}'")(full_filename));
 
@@ -3421,11 +3421,12 @@ bool TWPartitionManager::Prepare_Super_Volume(TWPartition* twrpPart) {
 
 	twrpPart->Set_Block_Device(fstabEntry.blk_device);
 	twrpPart->Update_Size(true);
-	twrpPart->Change_Mount_Read_Only(true);
 	twrpPart->Set_Can_Be_Backed_Up(false);
 	twrpPart->Set_Can_Be_Wiped(false);
-	LOGINFO("Symlinking %s => /dev/block/bootdevice/by-name/%s \n", fstabEntry.blk_device.c_str(), bare_partition_name.c_str());
-	symlink(fstabEntry.blk_device.c_str(), ("/dev/block/bootdevice/by-name/" + bare_partition_name).c_str());
+	if (access(("/dev/block/bootdevice/by-name/" + bare_partition_name).c_str(), F_OK) == -1) {
+		LOGINFO("Symlinking %s => /dev/block/bootdevice/by-name/%s \n", fstabEntry.blk_device.c_str(), bare_partition_name.c_str());
+		symlink(fstabEntry.blk_device.c_str(), ("/dev/block/bootdevice/by-name/" + bare_partition_name).c_str());
+	}
 
     return true;
 }
@@ -3556,7 +3557,7 @@ void TWPartitionManager::Unlock_Block_Partitions() {
 					continue;
 				}
 				if (ioctl(fd, BLKROSET, &OFF) == -1) {
-					LOGERR("Unable to unlock %s for flashing: %s\n", block_device.c_str());
+					LOGERR("Unable to unlock %s: %s\n", block_device.c_str());
 					continue;
 				}
 				close(fd);
@@ -3577,7 +3578,9 @@ bool TWPartitionManager::Unmap_Super_Devices() {
 		if ((*iter)->Is_Super) {
 			TWPartition *part = *iter;
 			std::string bare_partition_name = Get_Bare_Partition_Name((*iter)->Get_Mount_Point());
-			std::string blk_device_partition = bare_partition_name + PartitionManager.Get_Active_Slot_Suffix();
+			std::string blk_device_partition = bare_partition_name;
+			if (DataManager::GetStrValue(TW_VIRTUAL_AB_ENABLED) == "1")
+				blk_device_partition.append(PartitionManager.Get_Active_Slot_Suffix());
 			(*iter)->UnMount(false);
 			LOGINFO("removing dynamic partition: %s\n", blk_device_partition.c_str());
 			destroyed = DestroyLogicalPartition(blk_device_partition);

@@ -255,7 +255,7 @@ endif
 ifneq ($(wildcard system/core/libsparse/Android.*),)
     RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libsparse.so
 endif
-ifneq ($(TW_EXCLUDE_ENCRYPTED_BACKUPS), true)
+ifneq ($(TW_EXCLUDE_ENCRYPTED_BACKUPS),)
     RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libopenaes.so
 endif
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
@@ -274,6 +274,9 @@ ifneq ($(TW_RECOVERY_ADDITIONAL_RELINK_BINARY_FILES),)
 endif
 ifneq ($(TW_RECOVERY_ADDITIONAL_RELINK_LIBRARY_FILES),)
     RECOVERY_LIBRARY_SOURCE_FILES += $(TW_RECOVERY_ADDITIONAL_RELINK_LIBRARY_FILES)
+endif
+ifneq ($(TW_RECOVERY_ADDITIONAL_RELINK_VENDOR_HW_BINARY_FILES),)
+    RECOVERY_VENDOR_HW_BINARY_FILES += $(TW_RECOVERY_ADDITIONAL_RELINK_VENDOR_HW_BINARY_FILES)
 endif
 ifneq ($(wildcard external/pcre/Android.mk),)
     RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libpcre.so
@@ -383,6 +386,17 @@ TARGET_BINARY_RELINK_FILES := $(filter-out bu, $(notdir $(RECOVERY_BINARY_SOURCE
 LOCAL_REQUIRED_MODULES += $(TARGET_BINARY_RELINK_FILES)
 include $(BUILD_PHONY_PACKAGE)
 
+include $(CLEAR_VARS)
+LOCAL_MODULE := relink_vendor_hw_binaries
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := EXECUTABLES
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/
+LOCAL_POST_INSTALL_CMD += $(RELINK) $(TARGET_RECOVERY_ROOT_OUT)/vendor/bin/hw $(RECOVERY_VENDOR_HW_BINARY_FILES)
+TARGET_VENDOR_BINARY_RELINK_FILES := $(notdir $(RECOVERY_VENDOR_HW_BINARY_FILES))
+LOCAL_REQUIRED_MODULES += $(TARGET_VENDOR_BINARY_RELINK_FILES)
+$(warning vendor_hw: $(LOCAL_POST_INSTALL_CMD))
+include $(BUILD_PHONY_PACKAGE)
+
 #build out TWRP ramdisk
 include $(CLEAR_VARS)
 LOCAL_MODULE := twrp_ramdisk
@@ -392,20 +406,20 @@ LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)
 LOCAL_POST_INSTALL_CMD += \
     mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/sbin; ln -sf /system/bin/sh $(TARGET_RECOVERY_ROOT_OUT)/sbin/sh && \
     mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/system/etc/selinux/ && \
-    mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/vendor/etc/selinux/ && \
+    mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/$(TARGET_COPY_OUT_VENDOR)/etc/selinux/ && \
     cp $(TARGET_OUT_ETC)/selinux/plat_service_contexts $(TARGET_RECOVERY_ROOT_OUT)/system/etc/selinux/plat_service_contexts && \
     cp $(TARGET_OUT_ETC)/selinux/plat_hwservice_contexts $(TARGET_RECOVERY_ROOT_OUT)/system/etc/selinux/plat_hwservice_contexts && \
-    cp $(TARGET_OUT_VENDOR_ETC)/selinux/vndservice_contexts $(TARGET_RECOVERY_ROOT_OUT)/vendor/etc/selinux/vndservice_contexts && \
-    cp $(TARGET_OUT_VENDOR_ETC)/selinux/vendor_hwservice_contexts $(TARGET_RECOVERY_ROOT_OUT)/vendor/etc/selinux/vendor_hwservice_contexts
+    cp $(TARGET_OUT_VENDOR_ETC)/selinux/vndservice_contexts $(TARGET_RECOVERY_ROOT_OUT)/$(TARGET_COPY_OUT_VENDOR)/etc/selinux/vndservice_contexts && \
+    cp $(TARGET_OUT_VENDOR_ETC)/selinux/vendor_hwservice_contexts $(TARGET_RECOVERY_ROOT_OUT)/$(TARGET_COPY_OUT_VENDOR)/etc/selinux/vendor_hwservice_contexts
     ifeq ($(TARGET_USES_MKE2FS), true)
         LOCAL_POST_INSTALL_CMD += \
             && cp $(TARGET_OUT_ETC)/mke2fs.conf $(TARGET_RECOVERY_ROOT_OUT)/system/etc/mke2fs.conf
     endif
-LOCAL_REQUIRED_MODULES += init_second_stage.recovery reboot.recovery plat_service_contexts plat_hardware_contexts vndservice_contexts twrp_soong
+LOCAL_REQUIRED_MODULES += init_second_stage.recovery reboot.recovery plat_service_contexts plat_hwservice_contexts plat_hardware_contexts vndservice_contexts vendor_hwservice_contexts twrp_soong
 include $(BUILD_PHONY_PACKAGE)
 
 # copy license file for OpenAES
-ifneq ($(TW_EXCLUDE_ENCRYPTED_BACKUPS), true)
+ifneq ($(TW_EXCLUDE_ENCRYPTED_BACKUPS),)
     include $(CLEAR_VARS)
     LOCAL_MODULE := openaes_license
     LOCAL_MODULE_TAGS := optional

@@ -33,6 +33,7 @@
 #include <zlib.h>
 #include <sstream>
 #include <android-base/properties.h>
+#include <android-base/strings.h>
 #include <libsnapshot/snapshot.h>
 
 #include "cutils/properties.h"
@@ -472,20 +473,24 @@ bool TWPartition::Process_Fstab_Line(const char *fstab_line, bool Display_Error,
 			Can_Be_Wiped = false;
 			Mount_Read_Only = false;
 			Make_Dir(PartitionManager.Get_Android_Root_Path(), true);
+		} else if (Mount_Point == "/system_ext") {
+			Display_Name = "System_EXT";
+			Backup_Name = "System_EXT";
+			Backup_Display_Name = Display_Name;
+			Storage_Name = Display_Name;
+			Can_Be_Backed_Up = Wipe_Available_in_GUI = Is_Super ? false : true;
 		} else if (Mount_Point == "/product") {
 			Display_Name = "Product";
 			Backup_Name = "Product";
 			Backup_Display_Name = Display_Name;
 			Storage_Name = Display_Name;
 			Can_Be_Backed_Up = Wipe_Available_in_GUI = Is_Super ? false : true;
-			Mount_Read_Only = true;
 		} else if (Mount_Point == "/odm") {
 			Display_Name = "ODM";
 			Backup_Name = "ODM";
 			Backup_Display_Name = Display_Name;
 			Storage_Name = Display_Name;
 			Can_Be_Backed_Up = Wipe_Available_in_GUI = Is_Super ? false : true;
-			Mount_Read_Only = true;
 		} else if (Mount_Point == "/data") {
 			Display_Name = "Data";
 			Backup_Display_Name = Display_Name;
@@ -1243,8 +1248,22 @@ void TWPartition::Setup_Data_Media() {
 		backup_exclusions.add_absolute_dir("/data/vendor/dumpsys");
 		backup_exclusions.add_absolute_dir("/data/cache");
         backup_exclusions.add_absolute_dir("/data/misc/apexdata/com.android.art"); // exclude this dir to prevent "error 255" on AOSP Android 12
+		backup_exclusions.add_absolute_dir("/data/extm"); //exclude this dir to prevent "error 255" on MIUI
 		wipe_exclusions.add_absolute_dir(Mount_Point + "/misc/vold"); // adopted storage keys
 		ExcludeAll(Mount_Point + "/system/storage.xml");
+
+		// board-customisable exclusions
+		#ifdef TW_BACKUP_EXCLUSIONS
+			std::vector<std::string> user_extra_exclusions = TWFunc::Split_String(TW_BACKUP_EXCLUSIONS, ",");
+			std::string s1;
+			for (const std::string& extra_x : user_extra_exclusions) {
+				s1 = android::base::Trim(extra_x);
+				if (!s1.empty()) {
+					backup_exclusions.add_absolute_dir(s1);
+					LOGINFO("Adding user-defined path '%s' to the backup exclusions\n", s1.c_str());
+				}
+			}
+		#endif
 	} else {
 		int i;
 		string path;
@@ -2444,7 +2463,7 @@ bool TWPartition::Wipe_F2FS() {
 	}
 
 	needs_casefold = android::base::GetBoolProperty("external_storage.casefold.enabled", false);
-    needs_projid = android::base::GetBoolProperty("external_storage.projid.enabled", false);
+	needs_projid = android::base::GetBoolProperty("external_storage.projid.enabled", false);
 	unsigned long long dev_sz = TWFunc::IOCTL_Get_Block_Size(Actual_Block_Device.c_str());
 	if (!dev_sz)
 		return false;
@@ -2461,8 +2480,8 @@ bool TWPartition::Wipe_F2FS() {
 
 	f2fs_command += " " + Actual_Block_Device + " " + dev_sz_str;
 
-	if (TWFunc::Path_Exists("/system/bin/sload.f2fs")) {
-		f2fs_command += " && sload.f2fs -t /data " + Actual_Block_Device;
+	if (TWFunc::Path_Exists("/system/bin/sload_f2fs")) {
+		f2fs_command += " && sload_f2fs -t /data " + Actual_Block_Device;
 	}
 
 	/**
@@ -2966,36 +2985,39 @@ bool TWPartition::Restore_Image(PartitionSettings *part_settings) {
 }
 
 bool TWPartition::Update_Size(bool Display_Error) {
-	bool ret = false, Was_Already_Mounted = false;
+	bool ret = false, Was_Already_Mounted = false, ro = false;
 
 	Find_Actual_Block_Device();
 
 	if (Actual_Block_Device.empty())
 		return false;
 
+	ro = Mount_Read_Only;
+	Mount_Read_Only = true;
+
 	if (!Can_Be_Mounted && !Is_Encrypted) {
 		if (TWFunc::Path_Exists(Actual_Block_Device) && Find_Partition_Size()) {
 			Used = Size;
 			Backup_Size = Size;
-			return true;
+			goto success;
 		}
-		return false;
+		goto fail;
 	}
 
 	Was_Already_Mounted = Is_Mounted();
 
 	if (Removable || Is_Encrypted) {
 		if (!Mount(false))
-			return true;
+			goto success;
 	} else if (!Mount(Display_Error))
-		return false;
+		goto fail;
 
 	ret = Get_Size_Via_statfs(Display_Error);
 	if (!ret || Size == 0) {
 		if (!Get_Size_Via_df(Display_Error)) {
 			if (!Was_Already_Mounted)
 				UnMount(false);
-			return false;
+			goto fail;
 		}
 	}
 
@@ -3009,7 +3031,7 @@ bool TWPartition::Update_Size(bool Display_Error) {
 		} else {
 			if (!Was_Already_Mounted)
 				UnMount(false);
-			return false;
+			goto fail;
 		}
 	} else if (Has_Android_Secure) {
 		if (Mount(Display_Error))
@@ -3017,12 +3039,17 @@ bool TWPartition::Update_Size(bool Display_Error) {
 		else {
 			if (!Was_Already_Mounted)
 				UnMount(false);
-			return false;
+			goto fail;
 		}
 	}
 	if (!Was_Already_Mounted)
 		UnMount(false);
+success:
+	Mount_Read_Only = ro;
 	return true;
+fail:
+	Mount_Read_Only = ro;
+	return false;
 }
 
 bool TWPartition::Find_Wildcard_Block_Devices(const string& Device) {

@@ -119,7 +119,10 @@
 		<variable name="btn4_col2_x_right" value="507"/>
 		<variable name="btn4_col3_x_right" value="606"/>
 		<variable name="btn4_col4_x_right" value="703"/>
-		<variable name="row1_header_y" value="0"/>
+		<variable name="status_topalign_header_y" value="0"/>
+		<variable name="status_centeralign_header_y" value="2"/>
+		<variable name="status_bottomalign_header_y" value="4"/>
+		<variable name="row1_header_y" value="{statusicons_align}"/>
 		<variable name="row2_header_y" value="20"/>
 		<variable name="row3_header_y" value="24"/>
 		<variable name="row4_header_y" value="52"/>
@@ -226,6 +229,10 @@
 		<variable name="pattern_dot_dia" value="12"/>
 		<variable name="pattern_line_w" value="4"/>
 		<variable name="pattern_size" value="252"/>
+		<variable name="tw_clock_12_pos_x" value="{clock_12_pos}"/>
+		<variable name="tw_clock_24_pos_x" value="{clock_24_pos}"/>
+		<variable name="tw_cpu_pos_x" value="{cpu_pos}"/>
+		<variable name="tw_battery_pos_x" value="{battery_pos}"/>
 	</variables>
 
 	<mousecursor>
@@ -267,6 +274,7 @@
 
 			<text color="%text_color%">
 				<condition var1="tw_no_cpu_temp" var2="1"/>
+				<condition var1="tw_cpu_pos_x" var2="0"/>
 				<font resource="font_m"/>
 				<placement x="%indent%" y="%row1_header_y%"/>
 				<text>%tw_version%</text>
@@ -274,12 +282,15 @@
 
 			<text color="%text_color%">
 				<condition var1="tw_no_cpu_temp" var2="0"/>
+				<condition var1="tw_cpu_pos_x" var2="0"/>
 				<font resource="font_m"/>
 				<placement x="%indent%" y="%row1_header_y%"/>
 				<text>{@cpu_temp=CPU: %tw_cpu_temp% °C}</text>
 			</text>
 
 			<text color="%text_color%">
+				<condition var1="tw_clock_12_pos_x" var2="0"/>
+				<condition var1="tw_clock_24_pos_x" var2="0"/>
 				<font resource="font_m"/>
 				<placement x="%center_x%" y="%row1_header_y%" placement="5"/>
 				<text>%tw_time%</text>
@@ -290,11 +301,60 @@
 					<condition var1="tw_no_battery_percent" var2="0"/>
 					<condition var1="tw_battery" op="&gt;" var2="0"/>
 					<condition var1="tw_battery" op="&lt;" var2="101"/>
+					<condition var1="tw_battery_pos_x" var2="0"/>
 				</conditions>
 				<font resource="font_m"/>
 				<placement x="%indent_right%" y="%row1_header_y%" placement="1"/>
 				<text>{@battery_pct=Battery: %tw_battery%}</text>
 			</text>
+
+			<!-- Custom position for status bar items if defined START -->
+
+			<text color="%text_color%">
+				<condition var1="tw_no_cpu_temp" var2="1"/>
+				<condition var1="tw_cpu_pos_x" op="!=" var2="0"/>
+				<font resource="font_m"/>
+				<placement x="%tw_cpu_pos_x%" y="%row1_header_y%"/>
+				<text>%tw_version%</text>
+			</text>
+
+			<text color="%text_color%">
+				<condition var1="tw_no_cpu_temp" var2="0"/>
+				<condition var1="tw_cpu_pos_x" op="!=" var2="0"/>
+				<font resource="font_m"/>
+				<placement x="%tw_cpu_pos_x%" y="%row1_header_y%"/>
+				<text>{@cpu_temp=CPU: %tw_cpu_temp% °C}</text>
+			</text>
+
+			<text color="%text_color%">
+				<condition var1="tw_clock_12_pos_x" op="!=" var2="0"/>
+				<condition var1="tw_military_time" var2="0"/>
+				<font resource="font_m"/>
+				<placement x="%tw_clock_12_pos_x%" y="%row1_header_y%"/>
+				<text>%tw_time%</text>
+			</text>
+
+			<text color="%text_color%">
+				<condition var1="tw_clock_24_pos_x" op="!=" var2="0"/>
+				<condition var1="tw_military_time" var2="1"/>
+				<font resource="font_m"/>
+				<placement x="%tw_clock_24_pos_x%" y="%row1_header_y%"/>
+				<text>%tw_time%</text>
+			</text>
+
+			<text color="%text_color%">
+				<conditions>
+					<condition var1="tw_no_battery_percent" var2="0"/>
+					<condition var1="tw_battery" op="&gt;" var2="0"/>
+					<condition var1="tw_battery" op="&lt;" var2="101"/>
+					<condition var1="tw_battery_pos_x" op="!=" var2="0"/>
+				</conditions>
+				<font resource="font_m"/>
+				<placement x="%tw_battery_pos_x%" y="%row1_header_y%"/>
+				<text>{@battery_pct=Battery: %tw_battery%}</text>
+			</text>
+
+			<!-- Custom position for status bar items if defined END -->
 
 			<fill color="#000000">
 				<condition var1="tw_busy" var2="0"/>

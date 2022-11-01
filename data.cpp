@@ -719,6 +719,10 @@ void DataManager::SetDefaultValues()
 	printf("TW_HAS_EDL_MODE := true\n");
 	mConst.SetValue(TW_EDL_MODE, "1");
 #endif
+#ifdef TW_INCLUDE_FASTBOOTD
+	printf("TW_INCLUDE_FASTBOOTD := true\n");
+	mConst.SetValue(TW_FASTBOOT_MODE, "1");
+#endif
 #ifdef PRODUCT_USE_DYNAMIC_PARTITIONS
 	printf("PRODUCT_USE_DYNAMIC_PARTITIONS := true\n");
 	mConst.SetValue(TW_FASTBOOT_MODE, "1");
@@ -814,11 +818,10 @@ void DataManager::SetDefaultValues()
 	mData.SetValue("tw_sleep", "5");
 	mData.SetValue("tw_enable_fastboot", "0");
 
-
 	if (android::base::GetBoolProperty("ro.virtual_ab.enabled", false))
-		mConst.SetValue("tw_virtual_ab.enabled", "1");
+		mConst.SetValue(TW_VIRTUAL_AB_ENABLED, "1");
 	else
-		mConst.SetValue("tw_virtual_ab.enabled", "0");
+		mConst.SetValue(TW_VIRTUAL_AB_ENABLED, "0");
 	// Brightness handling
 	string findbright;
 #ifdef TW_BRIGHTNESS_PATH

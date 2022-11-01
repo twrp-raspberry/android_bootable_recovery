@@ -62,7 +62,6 @@ LOCAL_SRC_FILES := \
     find_file.cpp \
     infomanager.cpp \
     data.cpp \
-    kernel_module_loader.cpp \
     partition.cpp \
     partitionmanager.cpp \
     progresstracking.cpp \
@@ -108,7 +107,6 @@ LOCAL_C_INCLUDES += \
     bionic \
     system/extras \
     system/core/adb \
-    system/core/libmodprobe/include \
     system/core/libsparse \
     external/zlib \
     system/core/libziparchive/include \
@@ -129,7 +127,7 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/minuitwrp/include \
     $(LOCAL_PATH)/twinstall/include
 
-LOCAL_STATIC_LIBRARIES += libguitwrp libmodprobe
+LOCAL_STATIC_LIBRARIES += libguitwrp
 LOCAL_SHARED_LIBRARIES += libz libc libcutils libstdc++ libtar libblkid libminuitwrp libmtdutils libtwadbbu 
 LOCAL_SHARED_LIBRARIES += libbootloader_message libcrecovery libtwrpdigest libc++ libaosprecovery libcrypto libbase 
 LOCAL_SHARED_LIBRARIES += libziparchive libselinux libdl_android.bootstrap
@@ -307,6 +305,9 @@ ifneq ($(TW_ADDITIONAL_APEX_FILES),)
     LOCAL_CFLAGS += -DTW_ADDITIONAL_APEX_FILES=$(TW_ADDITIONAL_APEX_FILES)
 endif
 ifneq ($(TW_LOAD_VENDOR_MODULES),)
+    LOCAL_SRC_FILES += kernel_module_loader.cpp
+    LOCAL_C_INCLUDES += system/core/libmodprobe/include
+    LOCAL_STATIC_LIBRARIES += libmodprobe
     LOCAL_CFLAGS += -DTW_LOAD_VENDOR_MODULES=$(TW_LOAD_VENDOR_MODULES)
 endif
 ifeq ($(TW_INCLUDE_CRYPTO), true)
@@ -407,6 +408,12 @@ endif
 ifneq ($(TARGET_OTA_ASSERT_DEVICE),)
     LOCAL_CFLAGS += -DTARGET_OTA_ASSERT_DEVICE='"$(TARGET_OTA_ASSERT_DEVICE)"'
 endif
+ifneq ($(TW_BACKUP_EXCLUSIONS),)
+	LOCAL_CFLAGS += -DTW_BACKUP_EXCLUSIONS='"$(TW_BACKUP_EXCLUSIONS)"'
+endif
+ifeq ($(TW_INCLUDE_FASTBOOTD), true)
+    LOCAL_CFLAGS += -DTW_INCLUDE_FASTBOOTD
+endif
 ifeq ($(TW_EXCLUDE_TWRPAPP), true)
     LOCAL_CFLAGS += -DTW_EXCLUDE_TWRPAPP
 endif
@@ -416,6 +423,7 @@ LOCAL_C_INCLUDES += system/vold \
 TWRP_REQUIRED_MODULES += \
     relink_libraries \
     relink_binaries \
+    relink_vendor_hw_binaries \
     twrp_ramdisk \
     bc \
     dump_image \
@@ -446,8 +454,7 @@ TWRP_REQUIRED_MODULES += \
     me.twrp.twrpapp.apk \
     privapp-permissions-twrpapp.xml \
     adbd_system_api_recovery \
-    libsync.recovery \
-    libmodprobe
+    libsync.recovery
 
 ifneq ($(TW_EXCLUDE_TZDATA), true)
 TWRP_REQUIRED_MODULES += \
@@ -512,7 +519,7 @@ endif
 ifeq ($(BOARD_HAS_NO_REAL_SDCARD),)
     TWRP_REQUIRED_MODULES += sgdisk
 endif
-ifneq ($(TW_EXCLUDE_ENCRYPTED_BACKUPS), true)
+ifneq ($(TW_EXCLUDE_ENCRYPTED_BACKUPS),)
     TWRP_REQUIRED_MODULES += openaes openaes_license
 endif
 ifeq ($(TW_INCLUDE_DUMLOCK), true)
@@ -552,10 +559,16 @@ ifeq ($(TW_INCLUDE_NTFS_3G),true)
         mkfs.ntfs
 endif
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
-    TWRP_REQUIRED_MODULES += sload.f2fs \
+    TWRP_REQUIRED_MODULES += sload_f2fs \
         libfs_mgr \
         fs_mgr \
         libinit
+endif
+ifneq ($(TW_LOAD_VENDOR_MODULES),)
+    TWRP_REQUIRED_MODULES += libmodprobe
+endif
+ifeq ($(TW_INCLUDE_PYTHON),true)
+    TWRP_REQUIRED_MODULES += python3_twrp
 endif
 
 TWRP_REQUIRED_MODULES += file_contexts_text
@@ -565,12 +578,6 @@ ifeq ($(BOARD_CACHEIMAGE_PARTITION_SIZE),)
 endif
 
 LOCAL_REQUIRED_MODULES += $(TWRP_REQUIRED_MODULES)
-
-TW_THEME_VERSION := $(shell grep TW_THEME_VERSION bootable/recovery/variables.h | cut -d ' ' -f 3)
-
-LOCAL_POST_INSTALL_CMD += \
-    sed -i "s/{themeversion}/$(TW_THEME_VERSION)/" $(TARGET_RECOVERY_ROOT_OUT)/twres/splash.xml; \
-    sed -i "s/{themeversion}/$(TW_THEME_VERSION)/" $(TARGET_RECOVERY_ROOT_OUT)/twres/ui.xml;
 
 include $(BUILD_EXECUTABLE)
 
