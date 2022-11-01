@@ -19,7 +19,7 @@ on early-init
 
     start ueventd
 
-    setprop sys.usb.configfs 0
+    setprop sys.usb.configfs 1
 
 on init
     export PATH /sbin:/system/bin
