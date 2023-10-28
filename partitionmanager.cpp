@@ -165,7 +165,7 @@ int TWPartitionManager::Process_Fstab(string Fstab_Filename, bool Display_Error,
 	std::map<string, Flags_Map> twrp_flags;
 
 	strcpy(fstab_filename, "/etc/twrp.flags");
-	if (!TWFunc::Path_Exists("/dev/block/mmcblk0")) {
+	if (!TWFunc::Path_Exists("/dev/block/mmcblk0") && !TWFunc::Path_Exists("/dev/block/nvme0n1")) {
 		strcpy(fstab_filename, "/etc/twrp.usb.flags");
 	}
 	fstabFile = fopen(fstab_filename, "rt");
