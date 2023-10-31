@@ -197,7 +197,9 @@ ifeq ($(TW_INCLUDE_CRYPTO), true)
         RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/android.hardware.vibrator-V1-cpp.so
         RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libstatslog.so
         RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libsoft_attestation_cert.so
-        RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libxml2.so
+        ifneq ($(TW_EXCLUDE_LIBXML2), true)
+            RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libxml2.so
+        endif
 
         ifneq ($(wildcard system/keymaster/keymaster_stl.cpp),)
             RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libkeymaster_portable.so
@@ -239,7 +241,7 @@ ifeq ($(AB_OTA_UPDATER), true)
     RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/android.hardware.boot@1.1.so
 endif
 ifeq ($(PRODUCT_USE_DYNAMIC_PARTITIONS),true)
-    ifeq ($(TW_EXCLUDE_LPDUMP),)
+    ifneq ($(TW_INCLUDE_LPDUMP),)
         RECOVERY_BINARY_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/bootctl
         RECOVERY_BINARY_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/lpdump
         RECOVERY_BINARY_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/lpdumpd
@@ -247,7 +249,7 @@ ifeq ($(PRODUCT_USE_DYNAMIC_PARTITIONS),true)
         RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/liblpdump_interface-V1-cpp.so
         RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libprotobuf-cpp-full.so
     endif
-    ifeq ($(TW_EXCLUDE_LPTOOLS),)
+    ifneq ($(TW_INCLUDE_LPTOOLS),)
         RECOVERY_BINARY_SOURCE_FILES += $(TARGET_OUT_EXECUTABLES)/lptools
     endif
 endif
